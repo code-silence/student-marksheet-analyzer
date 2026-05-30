@@ -7,5 +7,7 @@ class HiveService {
     await Hive.openBox('batches');
     await Hive.openBox('students');
     await Hive.openBox('exams');
+    await Hive.openBox('exam_sessions');
+    await Hive.openBox('results');
   }
 }

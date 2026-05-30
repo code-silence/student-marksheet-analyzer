@@ -6,6 +6,8 @@ import 'data/local/hive_service.dart';
 import 'providers/batch_provider.dart';
 import 'screens/home/home_screen.dart';
 import 'providers/exam_provider.dart';
+import 'providers/exam_session_provider.dart';
+import 'providers/result_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,9 +17,11 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => BatchProvider()),
-        ChangeNotifierProvider(create: (_) => StudentProvider()),
-        ChangeNotifierProvider(create: (_) => ExamProvider()),
+        ChangeNotifierProvider(create: (_) => BatchProvider()), // Add BatchProvider
+        ChangeNotifierProvider(create: (_) => StudentProvider()), // Add StudentProvider
+        ChangeNotifierProvider(create: (_) => ExamProvider()),// Add ExamProvider
+        ChangeNotifierProvider(create: (_) => ExamSessionProvider()), // Add ExamSessionProvider
+        ChangeNotifierProvider(create: (_) => ResultProvider()), // Add ResultProvider
       ],
       child: const MyApp(),
     ),

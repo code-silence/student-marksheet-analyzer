@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/student_provider.dart';
+import '../exam/exam_session_screen.dart';
 import '../student/student_detail_screen.dart';
 
 class BatchDetailScreen extends StatelessWidget {
@@ -21,7 +22,23 @@ class BatchDetailScreen extends StatelessWidget {
     final students = studentProvider.getByBatch(batchId);
 
     return Scaffold(
-      appBar: AppBar(title: Text(batchName)),
+      appBar: AppBar(
+        title: Text(batchName),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.quiz),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      ExamSessionScreen(batchId: batchId, batchName: batchName),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
 
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddStudent(context),
