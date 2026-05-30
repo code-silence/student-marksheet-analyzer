@@ -99,12 +99,16 @@ class StudentDetailScreen extends StatelessWidget {
             ),
             TextField(
               controller: obtainedCtrl,
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(hintText: "Obtained Marks"),
             ),
             TextField(
               controller: fullCtrl,
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(hintText: "Full Marks"),
             ),
           ],
@@ -116,22 +120,55 @@ class StudentDetailScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              if (nameCtrl.text.isNotEmpty) {
-                final exam = ExamModel(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                  studentId: studentId,
-                  batchId: batchId,
-                  examName: nameCtrl.text,
-                  examType: "manual",
-                  obtainedMarks: double.parse(obtainedCtrl.text),
-                  fullMarks: double.parse(fullCtrl.text),
-                  date: DateTime.now(),
+              final examName = nameCtrl.text.trim();
+              final obtained = double.tryParse(obtainedCtrl.text);
+              final full = double.tryParse(fullCtrl.text);
+              final messenger = ScaffoldMessenger.of(context);
+
+              if (examName.isEmpty) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Exam name is required.')),
                 );
-
-                context.read<ExamProvider>().addExam(exam);
-
-                Navigator.pop(context);
+                return;
               }
+
+              if (obtained == null || obtained < 0) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Enter valid obtained marks.')),
+                );
+                return;
+              }
+
+              if (full == null || full <= 0) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Enter valid full marks.')),
+                );
+                return;
+              }
+
+              if (obtained > full) {
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Obtained marks cannot exceed full marks.'),
+                  ),
+                );
+                return;
+              }
+
+              final exam = ExamModel(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                studentId: studentId,
+                batchId: batchId,
+                examName: examName,
+                examType: "manual",
+                obtainedMarks: obtained,
+                fullMarks: full,
+                date: DateTime.now(),
+              );
+
+              context.read<ExamProvider>().addExam(exam);
+
+              Navigator.pop(context);
             },
             child: const Text("Save"),
           ),

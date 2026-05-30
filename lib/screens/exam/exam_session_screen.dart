@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/exam_session_provider.dart';
-import 'result_entry_screen.dart';
 import 'bulk_result_screen.dart';
-import 'session_result_screen.dart';
 
 class ExamSessionScreen extends StatelessWidget {
   final String batchId;
@@ -94,7 +92,9 @@ class ExamSessionScreen extends StatelessWidget {
 
                 TextField(
                   controller: marksCtrl,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(hintText: "Full marks"),
                 ),
               ],
@@ -108,11 +108,31 @@ class ExamSessionScreen extends StatelessWidget {
 
               ElevatedButton(
                 onPressed: () {
+                  final title = titleCtrl.text.trim();
+                  final fullMarks = double.tryParse(marksCtrl.text);
+                  final messenger = ScaffoldMessenger.of(context);
+
+                  if (title.isEmpty) {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Exam title is required.')),
+                    );
+                    return;
+                  }
+
+                  if (fullMarks == null || fullMarks <= 0) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Full marks must be a positive number.'),
+                      ),
+                    );
+                    return;
+                  }
+
                   context.read<ExamSessionProvider>().addSession(
                     batchId: batchId,
-                    title: titleCtrl.text,
+                    title: title,
                     type: selectedType,
-                    fullMarks: double.parse(marksCtrl.text),
+                    fullMarks: fullMarks,
                   );
 
                   Navigator.pop(context);

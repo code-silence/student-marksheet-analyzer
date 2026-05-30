@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/exam_session_model.dart';
@@ -44,9 +45,15 @@ class _BulkResultScreenState extends State<BulkResultScreen> {
               itemBuilder: (context, index) {
                 final student = students[index];
 
-                controllers.putIfAbsent(
+                final existingResult = context
+                    .read<ResultProvider>()
+                    .getStudentResult(student.id, widget.session.id);
+
+                final controller = controllers.putIfAbsent(
                   student.id,
-                  () => TextEditingController(),
+                  () => TextEditingController(
+                    text: existingResult?.obtainedMarks.toString(),
+                  ),
                 );
 
                 return ListTile(
@@ -55,8 +62,15 @@ class _BulkResultScreenState extends State<BulkResultScreen> {
                   trailing: SizedBox(
                     width: 80,
                     child: TextField(
-                      controller: controllers[student.id],
-                      keyboardType: TextInputType.number,
+                      controller: controller,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d*$'),
+                        ),
+                      ],
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -74,25 +88,56 @@ class _BulkResultScreenState extends State<BulkResultScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
                         final provider = context.read<ResultProvider>();
+                        final parsedValues = <String, double>{};
 
                         for (final student in students) {
-                          final text = controllers[student.id]?.text ?? '';
+                          final text =
+                              controllers[student.id]?.text.trim() ?? '';
 
                           if (text.isEmpty) continue;
 
+                          final obtained = double.tryParse(text);
+                          if (obtained == null ||
+                              obtained < 0 ||
+                              obtained > widget.session.fullMarks) {
+                            scaffoldMessenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Enter valid marks for ${student.name}. Max ${widget.session.fullMarks}.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          parsedValues[student.id] = obtained;
+                        }
+
+                        if (parsedValues.isEmpty) {
+                          scaffoldMessenger.showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Please enter at least one valid result.',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
+                        for (final entry in parsedValues.entries) {
                           await provider.saveResult(
-                            studentId: student.id,
+                            studentId: entry.key,
                             examSessionId: widget.session.id,
-                            obtainedMarks: double.parse(text),
+                            obtainedMarks: entry.value,
                           );
                         }
 
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Results saved")),
-                          );
-                        }
+                        if (!mounted) return;
+                        scaffoldMessenger.showSnackBar(
+                          const SnackBar(content: Text('Results saved')),
+                        );
                       },
                       child: const Text("Save"),
                     ),
