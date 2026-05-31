@@ -52,22 +52,59 @@ class BatchDetailScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final s = students[index];
 
-                return ListTile(
+                return Dismissible(
                   key: ValueKey(s.id),
-                  title: Text(s.name),
-                  subtitle: Text(s.phone),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => StudentDetailScreen(
-                          studentId: s.id,
-                          studentName: s.name,
-                          batchId: batchId,
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  confirmDismiss: (_) async {
+                    return await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Delete student'),
+                        content: Text(
+                          'Delete ${s.name}? This action cannot be undone.',
                         ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Delete'),
+                          ),
+                        ],
                       ),
                     );
                   },
+                  onDismissed: (_) {
+                    context.read<StudentProvider>().deleteStudent(s.id);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${s.name} deleted')),
+                    );
+                  },
+                  child: ListTile(
+                    title: Text(s.name),
+                    subtitle: Text(s.phone),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => StudentDetailScreen(
+                            studentId: s.id,
+                            studentName: s.name,
+                            batchId: batchId,
+                          ),
+                        ),
+                      );
+                    },
+                    onLongPress: () => _showEditStudentDialog(context, s),
+                  ),
                 );
               },
             ),
@@ -77,6 +114,7 @@ class BatchDetailScreen extends StatelessWidget {
   void _showAddStudent(BuildContext context) {
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
+    final analysisCtrl = TextEditingController();
 
     showDialog(
       context: context,
@@ -93,6 +131,13 @@ class BatchDetailScreen extends StatelessWidget {
               controller: phoneCtrl,
               decoration: const InputDecoration(hintText: "Phone"),
             ),
+            TextField(
+              controller: analysisCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: "Initial Analysis (optional)",
+              ),
+            ),
           ],
         ),
         actions: [
@@ -107,12 +152,64 @@ class BatchDetailScreen extends StatelessWidget {
                   name: nameCtrl.text,
                   phone: phoneCtrl.text,
                   batchId: batchId,
+                  analysis: analysisCtrl.text.trim(),
                 );
 
                 Navigator.pop(context);
               }
             },
             child: const Text("Add"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditStudentDialog(BuildContext context, student) {
+    final nameCtrl = TextEditingController(text: student.name);
+    final phoneCtrl = TextEditingController(text: student.phone);
+    final analysisCtrl = TextEditingController(text: student.analysis);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Edit Student"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(hintText: "Name"),
+            ),
+            TextField(
+              controller: phoneCtrl,
+              decoration: const InputDecoration(hintText: "Phone"),
+            ),
+            TextField(
+              controller: analysisCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(hintText: "Analysis"),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameCtrl.text.isNotEmpty) {
+                context.read<StudentProvider>().updateStudent(
+                  studentId: student.id,
+                  name: nameCtrl.text.trim(),
+                  phone: phoneCtrl.text.trim(),
+                  analysis: analysisCtrl.text.trim(),
+                );
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Save"),
           ),
         ],
       ),

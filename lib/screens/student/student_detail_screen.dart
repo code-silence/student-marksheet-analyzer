@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/exam_provider.dart';
-import '../../models/exam_model.dart';
-import '../../services/analytics_service.dart';
+import '../../providers/exam_session_provider.dart';
+import '../../providers/result_provider.dart';
+import '../../providers/student_provider.dart';
 
 class StudentDetailScreen extends StatelessWidget {
   final String studentId;
@@ -20,18 +21,80 @@ class StudentDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final examProvider = context.watch<ExamProvider>();
+    final resultProvider = context.watch<ResultProvider>();
+    final sessionProvider = context.watch<ExamSessionProvider>();
+    final studentProvider = context.watch<StudentProvider>();
+    final student = studentProvider.getById(studentId);
+    final examResults = examProvider.getByStudent(studentId);
+    final bulkResults = resultProvider.getByStudent(studentId);
+    final sessionMap = {
+      for (final session in sessionProvider.sessions) session.id: session,
+    };
 
-    final exams = examProvider.getByStudent(studentId);
-    final avg = examProvider.studentAverage(studentId);
+    final combinedResults = [
+      ...examResults.map(
+        (e) => _StudentResult(
+          id: e.id,
+          title: e.examName,
+          date: e.date,
+          obtainedMarks: e.obtainedMarks,
+          fullMarks: e.fullMarks,
+          percentage: e.percentage,
+          sourceLabel: 'Manual exam',
+        ),
+      ),
+      ...bulkResults.map((result) {
+        final session = sessionMap[result.examSessionId];
+        return _StudentResult(
+          id: result.id,
+          title: session?.title ?? 'Bulk result',
+          date: session?.date ?? DateTime.now(),
+          obtainedMarks: result.obtainedMarks,
+          fullMarks: session?.fullMarks ?? 0,
+          percentage: session != null && session.fullMarks > 0
+              ? (result.obtainedMarks / session.fullMarks) * 100
+              : 0,
+          sourceLabel: session != null
+              ? 'Session • ${session.type}'
+              : 'Bulk result',
+        );
+      }),
+    ];
+
+    combinedResults.sort((a, b) => b.date.compareTo(a.date));
+    final avg = combinedResults.isEmpty
+        ? 0
+        : combinedResults.map((e) => e.percentage).reduce((a, b) => a + b) /
+              combinedResults.length;
+    final monthlyResults = combinedResults
+        .where(
+          (e) =>
+              e.date.month == DateTime.now().month &&
+              e.date.year == DateTime.now().year,
+        )
+        .toList();
+    final monthlyAvg = monthlyResults.isEmpty
+        ? 0
+        : monthlyResults.map((e) => e.percentage).reduce((a, b) => a + b) /
+              monthlyResults.length;
+    final yearlyResults = combinedResults
+        .where((e) => e.date.year == DateTime.now().year)
+        .toList();
+    final yearlyAvg = yearlyResults.isEmpty
+        ? 0
+        : yearlyResults.map((e) => e.percentage).reduce((a, b) => a + b) /
+              yearlyResults.length;
+    final totalExams = combinedResults.length;
+
+    if (student == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(studentName)),
+        body: const Center(child: Text('Student not found')),
+      );
+    }
 
     return Scaffold(
-      appBar: AppBar(title: Text(studentName)),
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddExam(context),
-        child: const Icon(Icons.add_chart),
-      ),
-
+      appBar: AppBar(title: Text(student.name)),
       body: Column(
         children: [
           Container(
@@ -47,31 +110,57 @@ class StudentDetailScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "This Month Avg: ${AnalyticsService.monthlyAverage(exams, DateTime.now().month, DateTime.now().year).toStringAsFixed(2)}%",
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Analysis',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () =>
+                          _showAnalysisEditor(context, student.analysis),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 8),
                 Text(
-                  "This Year Avg: ${AnalyticsService.yearlyAverage(exams, DateTime.now().year).toStringAsFixed(2)}%",
+                  student.analysis.isEmpty
+                      ? 'No analysis yet. Tap edit to add notes.'
+                      : student.analysis,
                 ),
-                Text("Total Exams: ${AnalyticsService.totalExams(exams)}"),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Text("This Month Avg: ${monthlyAvg.toStringAsFixed(2)}%"),
+                Text("This Year Avg: ${yearlyAvg.toStringAsFixed(2)}%"),
+                Text("Total Exams: $totalExams"),
               ],
             ),
           ),
 
           Expanded(
-            child: exams.isEmpty
-                ? const Center(child: Text("No exams yet"))
+            child: combinedResults.isEmpty
+                ? const Center(child: Text("No exam results yet"))
                 : ListView.builder(
-                    itemCount: exams.length,
+                    itemCount: combinedResults.length,
                     itemBuilder: (context, index) {
-                      final e = exams[index];
+                      final result = combinedResults[index];
+                      final scoreText = result.fullMarks > 0
+                          ? "${result.obtainedMarks}/${result.fullMarks} (${result.percentage.toStringAsFixed(1)}%)"
+                          : "${result.obtainedMarks} points";
 
                       return ListTile(
-                        title: Text(e.examName),
-                        subtitle: Text(
-                          "${e.obtainedMarks}/${e.fullMarks} (${e.percentage.toStringAsFixed(1)}%)",
-                        ),
+                        title: Text(result.title),
+                        subtitle: Text(scoreText),
+                        trailing: Text(result.sourceLabel),
                       );
                     },
                   ),
@@ -81,99 +170,57 @@ class StudentDetailScreen extends StatelessWidget {
     );
   }
 
-  void _showAddExam(BuildContext context) {
-    final nameCtrl = TextEditingController();
-    final obtainedCtrl = TextEditingController();
-    final fullCtrl = TextEditingController();
+  void _showAnalysisEditor(BuildContext context, String currentAnalysis) {
+    final analysisCtrl = TextEditingController(text: currentAnalysis);
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Add Exam Result"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(hintText: "Exam Name"),
-            ),
-            TextField(
-              controller: obtainedCtrl,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(hintText: "Obtained Marks"),
-            ),
-            TextField(
-              controller: fullCtrl,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(hintText: "Full Marks"),
-            ),
-          ],
+        title: const Text('Student Analysis'),
+        content: TextField(
+          controller: analysisCtrl,
+          maxLines: 6,
+          decoration: const InputDecoration(
+            hintText: 'Enter notes or review for this student',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
-              final examName = nameCtrl.text.trim();
-              final obtained = double.tryParse(obtainedCtrl.text);
-              final full = double.tryParse(fullCtrl.text);
-              final messenger = ScaffoldMessenger.of(context);
-
-              if (examName.isEmpty) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Exam name is required.')),
-                );
-                return;
-              }
-
-              if (obtained == null || obtained < 0) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Enter valid obtained marks.')),
-                );
-                return;
-              }
-
-              if (full == null || full <= 0) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Enter valid full marks.')),
-                );
-                return;
-              }
-
-              if (obtained > full) {
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Obtained marks cannot exceed full marks.'),
-                  ),
-                );
-                return;
-              }
-
-              final exam = ExamModel(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                studentId: studentId,
-                batchId: batchId,
-                examName: examName,
-                examType: "manual",
-                obtainedMarks: obtained,
-                fullMarks: full,
-                date: DateTime.now(),
+              context.read<StudentProvider>().updateStudentAnalysis(
+                studentId,
+                analysisCtrl.text.trim(),
               );
-
-              context.read<ExamProvider>().addExam(exam);
-
               Navigator.pop(context);
             },
-            child: const Text("Save"),
+            child: const Text('Save'),
           ),
         ],
       ),
     );
   }
+}
+
+class _StudentResult {
+  final String id;
+  final String title;
+  final DateTime date;
+  final double obtainedMarks;
+  final double fullMarks;
+  final double percentage;
+  final String sourceLabel;
+
+  _StudentResult({
+    required this.id,
+    required this.title,
+    required this.date,
+    required this.obtainedMarks,
+    required this.fullMarks,
+    required this.percentage,
+    required this.sourceLabel,
+  });
 }

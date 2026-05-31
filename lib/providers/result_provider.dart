@@ -77,6 +77,30 @@ class ResultProvider extends ChangeNotifier {
     }
   }
 
+  List<ResultModel> getByStudent(String studentId) {
+    return _results.where((r) => r.studentId == studentId).toList();
+  }
+
+  Future<void> deleteByStudent(String studentId) async {
+    final toRemove = _results.where((r) => r.studentId == studentId).toList();
+    for (final result in toRemove) {
+      await resultBox.delete(result.id);
+    }
+    _results.removeWhere((r) => r.studentId == studentId);
+    notifyListeners();
+  }
+
+  Future<void> deleteBySession(String sessionId) async {
+    final toRemove = _results
+        .where((r) => r.examSessionId == sessionId)
+        .toList();
+    for (final result in toRemove) {
+      await resultBox.delete(result.id);
+    }
+    _results.removeWhere((r) => r.examSessionId == sessionId);
+    notifyListeners();
+  }
+
   List<ResultModel> getBySession(String sessionId) {
     return _results.where((r) => r.examSessionId == sessionId).toList();
   }

@@ -33,6 +33,24 @@ class ExamProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteByStudent(String studentId) async {
+    final toRemove = _exams.where((e) => e.studentId == studentId).toList();
+    for (final exam in toRemove) {
+      await examBox.delete(exam.id);
+    }
+    _exams.removeWhere((e) => e.studentId == studentId);
+    notifyListeners();
+  }
+
+  Future<void> deleteByBatch(String batchId) async {
+    final toRemove = _exams.where((e) => e.batchId == batchId).toList();
+    for (final exam in toRemove) {
+      await examBox.delete(exam.id);
+    }
+    _exams.removeWhere((e) => e.batchId == batchId);
+    notifyListeners();
+  }
+
   List<ExamModel> getByStudent(String studentId) {
     return _exams.where((e) => e.studentId == studentId).toList();
   }
@@ -41,9 +59,6 @@ class ExamProvider extends ChangeNotifier {
     final list = getByStudent(studentId);
     if (list.isEmpty) return 0;
 
-    return list
-            .map((e) => e.percentage)
-            .reduce((a, b) => a + b) /
-        list.length;
+    return list.map((e) => e.percentage).reduce((a, b) => a + b) / list.length;
   }
 }

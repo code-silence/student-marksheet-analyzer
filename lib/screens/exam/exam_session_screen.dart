@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/exam_session_provider.dart';
+import '../../providers/result_provider.dart';
 import 'bulk_result_screen.dart';
 
 class ExamSessionScreen extends StatelessWidget {
@@ -35,17 +36,60 @@ class ExamSessionScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final session = sessions[index];
 
-                return ListTile(
-                  title: Text(session.title),
-                  subtitle: Text("${session.type} • ${session.fullMarks}"),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BulkResultScreen(session: session),
+                return Dismissible(
+                  key: ValueKey(session.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  confirmDismiss: (_) async {
+                    return await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Delete session'),
+                        content: Text(
+                          'Delete ${session.title}? This will remove saved results for this session.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Delete'),
+                          ),
+                        ],
                       ),
                     );
                   },
+                  onDismissed: (_) async {
+                    final resultProvider = context.read<ResultProvider>();
+                    await resultProvider.deleteBySession(session.id);
+                    await context.read<ExamSessionProvider>().deleteSession(
+                      session.id,
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${session.title} deleted')),
+                      );
+                    }
+                  },
+                  child: ListTile(
+                    title: Text(session.title),
+                    subtitle: Text("${session.type} • ${session.fullMarks}"),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BulkResultScreen(session: session),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),
