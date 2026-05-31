@@ -35,7 +35,23 @@ class _BulkResultScreenState extends State<BulkResultScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.session.title)),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.deepPurple, Colors.deepPurpleAccent],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text(
+          widget.session.title,
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
 
       body: Column(
         children: [
@@ -150,6 +166,7 @@ class _BulkResultScreenState extends State<BulkResultScreen> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
                       ),
                       onPressed: () {
                         Navigator.push(

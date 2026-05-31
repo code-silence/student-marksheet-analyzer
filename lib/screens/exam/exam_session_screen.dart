@@ -22,16 +22,62 @@ class ExamSessionScreen extends StatelessWidget {
     final sessions = provider.getByBatch(batchId);
 
     return Scaffold(
-      appBar: AppBar(title: Text("$batchName Exams")),
+      backgroundColor: Colors.blueGrey.shade50,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.deepPurple, Colors.deepPurpleAccent],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text(
+          "$batchName exams",
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
 
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddDialog(context),
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Exam Session'),
       ),
 
       body: sessions.isEmpty
-          ? const Center(child: Text("No exams yet"))
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(
+                      Icons.event_note_outlined,
+                      size: 72,
+                      color: Colors.blueGrey,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'No exam sessions yet',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Create a session to start recording bulk exam results for this batch.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            )
           : ListView.builder(
+              padding: const EdgeInsets.all(12),
               itemCount: sessions.length,
               itemBuilder: (context, index) {
                 final session = sessions[index];
@@ -40,23 +86,27 @@ class ExamSessionScreen extends StatelessWidget {
                   key: ValueKey(session.id),
                   direction: DismissDirection.endToStart,
                   background: Container(
-                    color: Colors.red,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
                   confirmDismiss: (_) async {
                     return await showDialog<bool>(
                       context: context,
                       builder: (_) => AlertDialog(
-                        title: const Text('Delete session'),
+                        title: const Text('Confirm removal'),
                         content: Text(
-                          'Delete ${session.title}? This will remove saved results for this session.',
+                          'Delete "${session.title}" and all its saved results? This action is permanent.',
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
+                            child: const Text('Keep session'),
                           ),
                           ElevatedButton(
                             onPressed: () => Navigator.pop(context, true),
@@ -74,21 +124,39 @@ class ExamSessionScreen extends StatelessWidget {
                     );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${session.title} deleted')),
+                        SnackBar(
+                          content: Text('Session "${session.title}" removed'),
+                        ),
                       );
                     }
                   },
-                  child: ListTile(
-                    title: Text(session.title),
-                    subtitle: Text("${session.type} • ${session.fullMarks}"),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => BulkResultScreen(session: session),
-                        ),
-                      );
-                    },
+                  child: Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      title: Text(
+                        session.title,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      subtitle: Text(
+                        '${session.type[0].toUpperCase()}${session.type.substring(1)} • ${session.fullMarks} full marks',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BulkResultScreen(session: session),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 );
               },
@@ -108,21 +176,24 @@ class ExamSessionScreen extends StatelessWidget {
       builder: (_) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: const Text("Add Exam"),
+            title: const Text("Add Exam Session"),
 
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: titleCtrl,
-                  decoration: const InputDecoration(hintText: "Exam title"),
+                  decoration: const InputDecoration(
+                    labelText: 'Session title',
+                    hintText: 'Example: Weekly Quiz 1',
+                  ),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
 
-                DropdownButton<String>(
+                DropdownButtonFormField<String>(
                   value: selectedType,
-                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Session type'),
                   items: const [
                     DropdownMenuItem(value: "weekly", child: Text("Weekly")),
                     DropdownMenuItem(value: "monthly", child: Text("Monthly")),
@@ -134,12 +205,16 @@ class ExamSessionScreen extends StatelessWidget {
                   },
                 ),
 
+                const SizedBox(height: 12),
                 TextField(
                   controller: marksCtrl,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(hintText: "Full marks"),
+                  decoration: const InputDecoration(
+                    labelText: 'Full marks',
+                    hintText: 'Total achievable score',
+                  ),
                 ),
               ],
             ),
@@ -158,7 +233,9 @@ class ExamSessionScreen extends StatelessWidget {
 
                   if (title.isEmpty) {
                     messenger.showSnackBar(
-                      const SnackBar(content: Text('Exam title is required.')),
+                      const SnackBar(
+                        content: Text('Please enter a session title.'),
+                      ),
                     );
                     return;
                   }
@@ -166,7 +243,7 @@ class ExamSessionScreen extends StatelessWidget {
                   if (fullMarks == null || fullMarks <= 0) {
                     messenger.showSnackBar(
                       const SnackBar(
-                        content: Text('Full marks must be a positive number.'),
+                        content: Text('Full marks must be greater than zero.'),
                       ),
                     );
                     return;
@@ -181,7 +258,7 @@ class ExamSessionScreen extends StatelessWidget {
 
                   Navigator.pop(context);
                 },
-                child: const Text("Save"),
+                child: const Text("Create session"),
               ),
             ],
           );

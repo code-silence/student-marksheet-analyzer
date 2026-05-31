@@ -8,20 +8,28 @@ import '../../providers/result_provider.dart';
 class ResultEntryScreen extends StatelessWidget {
   final ExamSessionModel session;
 
-  const ResultEntryScreen({
-    super.key,
-    required this.session,
-  });
+  const ResultEntryScreen({super.key, required this.session});
 
   @override
   Widget build(BuildContext context) {
-    final students = context
-        .watch<StudentProvider>()
-        .getByBatch(session.batchId);
+    final students = context.watch<StudentProvider>().getByBatch(
+      session.batchId,
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(session.title),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.deepPurple, Colors.deepPurpleAccent],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text(session.title, style: const TextStyle(color: Colors.white)),
       ),
       body: ListView.builder(
         itemCount: students.length,
@@ -34,15 +42,9 @@ class ResultEntryScreen extends StatelessWidget {
               width: 80,
               child: ElevatedButton(
                 onPressed: () {
-                  _showMarksDialog(
-                    context,
-                    student.id,
-                    student.name,
-                  );
+                  _showMarksDialog(context, student.id, student.name);
                 },
-                child: const Text(
-                  "Marks",
-                ),
+                child: const Text("Marks"),
               ),
             ),
           );
@@ -56,8 +58,7 @@ class ResultEntryScreen extends StatelessWidget {
     String studentId,
     String studentName,
   ) {
-    final controller =
-        TextEditingController();
+    final controller = TextEditingController();
 
     showDialog(
       context: context,
@@ -65,32 +66,21 @@ class ResultEntryScreen extends StatelessWidget {
         title: Text(studentName),
         content: TextField(
           controller: controller,
-          keyboardType:
-              TextInputType.number,
-          decoration:
-              const InputDecoration(
-            hintText: "Marks",
-          ),
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(hintText: "Marks"),
         ),
         actions: [
           ElevatedButton(
             onPressed: () {
-              context
-                  .read<ResultProvider>()
-                  .saveResult(
-                    studentId: studentId,
-                    examSessionId:
-                        session.id,
-                    obtainedMarks:
-                        double.parse(
-                      controller.text,
-                    ),
-                  );
+              context.read<ResultProvider>().saveResult(
+                studentId: studentId,
+                examSessionId: session.id,
+                obtainedMarks: double.parse(controller.text),
+              );
 
               Navigator.pop(context);
             },
-            child:
-                const Text("Save"),
+            child: const Text("Save"),
           ),
         ],
       ),

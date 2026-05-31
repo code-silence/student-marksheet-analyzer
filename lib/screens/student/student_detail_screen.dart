@@ -85,86 +85,220 @@ class StudentDetailScreen extends StatelessWidget {
         : yearlyResults.map((e) => e.percentage).reduce((a, b) => a + b) /
               yearlyResults.length;
     final totalExams = combinedResults.length;
+    final Color performanceCardColor = avg < 40
+        ? Colors.red.shade100
+        : avg < 70
+        ? Colors.yellow.shade100
+        : Colors.green.shade100;
 
     if (student == null) {
       return Scaffold(
-        appBar: AppBar(title: Text(studentName)),
+        backgroundColor: Colors.blueGrey.shade50,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.indigo, Colors.indigoAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          title: Text(studentName, style: const TextStyle(color: Colors.white)),
+        ),
         body: const Center(child: Text('Student not found')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(student.name)),
-      body: Column(
+      backgroundColor: Colors.blueGrey.shade50,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.indigo, Colors.indigoAccent],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text(student.name, style: const TextStyle(color: Colors.white)),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: Colors.blue.shade50,
-            child: Text(
-              "Average: ${avg.toStringAsFixed(2)}%",
-              style: const TextStyle(fontSize: 18),
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
             ),
-          ),
-
-          Container(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Analysis',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () =>
-                          _showAnalysisEditor(context, student.analysis),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  student.analysis.isEmpty
-                      ? 'No analysis yet. Tap edit to add notes.'
-                      : student.analysis,
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Text("This Month Avg: ${monthlyAvg.toStringAsFixed(2)}%"),
-                Text("This Year Avg: ${yearlyAvg.toStringAsFixed(2)}%"),
-                Text("Total Exams: $totalExams"),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: combinedResults.isEmpty
-                ? const Center(child: Text("No exam results yet"))
-                : ListView.builder(
-                    itemCount: combinedResults.length,
-                    itemBuilder: (context, index) {
-                      final result = combinedResults[index];
-                      final scoreText = result.fullMarks > 0
-                          ? "${result.obtainedMarks}/${result.fullMarks} (${result.percentage.toStringAsFixed(1)}%)"
-                          : "${result.obtainedMarks} points";
-
-                      return ListTile(
-                        title: Text(result.title),
-                        subtitle: Text(scoreText),
-                        trailing: Text(result.sourceLabel),
-                      );
-                    },
+            color: performanceCardColor,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Current performance',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '${avg.toStringAsFixed(2)}%',
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Based on $totalExams exam ${totalExams == 1 ? 'result' : 'results'}.',
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
           ),
+
+          const SizedBox(height: 16),
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Student notes',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        tooltip: 'Edit notes',
+                        onPressed: () =>
+                            _showAnalysisEditor(context, student.analysis),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    student.analysis.isEmpty
+                        ? 'No notes yet. Tap edit to add a quick observation.'
+                        : student.analysis,
+                    style: const TextStyle(height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'This month',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${monthlyAvg.toStringAsFixed(1)}%',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'This year',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${yearlyAvg.toStringAsFixed(1)}%',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+          const Text(
+            'Exam history',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          combinedResults.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'No exam results yet. Results will appear here once they are added.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : Column(
+                  children: combinedResults.map((result) {
+                    final scoreText = result.fullMarks > 0
+                        ? '${result.obtainedMarks}/${result.fullMarks} (${result.percentage.toStringAsFixed(1)}%)'
+                        : '${result.obtainedMarks} points';
+                    return Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        title: Text(
+                          result.title,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          '${result.date.day}/${result.date.month}/${result.date.year} • $scoreText',
+                        ),
+                        trailing: Text(
+                          result.sourceLabel,
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
         ],
       ),
     );
@@ -176,12 +310,14 @@ class StudentDetailScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Student Analysis'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Edit student notes'),
         content: TextField(
           controller: analysisCtrl,
           maxLines: 6,
           decoration: const InputDecoration(
-            hintText: 'Enter notes or review for this student',
+            labelText: 'Notes',
+            hintText: 'Add or update your comment about this student',
           ),
         ),
         actions: [
@@ -197,7 +333,7 @@ class StudentDetailScreen extends StatelessWidget {
               );
               Navigator.pop(context);
             },
-            child: const Text('Save'),
+            child: const Text('Save notes'),
           ),
         ],
       ),

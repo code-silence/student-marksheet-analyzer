@@ -33,7 +33,23 @@ class SessionResultScreen extends StatelessWidget {
 
     ranked.sort((a, b) => b["marks"].compareTo(a["marks"]));
     return Scaffold(
-      appBar: AppBar(title: Text("${session.title} Result")),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.deepPurple, Colors.deepPurpleAccent],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Text(
+          "${session.title} Result",
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
       body: ListView.builder(
         itemCount: ranked.length,
         itemBuilder: (context, index) {
